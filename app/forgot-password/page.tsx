@@ -1,31 +1,54 @@
 'use client';
 
-import { useState, SyntheticEvent } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { isValidEmail } from '@/lib/validation';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: SyntheticEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess(false);
-    setLoading(true);
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const formData = new FormData(event.currentTarget);
+    const userEmail = formData.get('email') as string;
+
+    // Validate email format
+    if (!isValidEmail(userEmail)) {
+      setErrorMessage('Please enter a valid email address (example: user@email.com)');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      await api.forgotPassword({ email });
-      setSuccess(true);
-      setEmail('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      await api.forgotPassword({ email: userEmail });
+      
+      setSuccessMessage(
+        '✓ Password reset link sent successfully! Please check your email inbox (and spam folder) for the reset link.'
+      );
+      
+      event.currentTarget.reset();
+    } catch (error) {
+      // Show clear error message to user
+      if (error instanceof Error) {
+        if (error.message.includes('not found')) {
+          setErrorMessage('No account found with this email address. Please check your email or sign up for a new account.');
+        } else {
+          setErrorMessage(error.message);
+        }
+      } else {
+        setErrorMessage('Unable to send reset link. Please check your internet connection and try again.');
+      }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }
 
   return (
     <div className="auth-container">
@@ -37,11 +60,11 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        {success ? (
+        {successMessage && (
           <div className="success-message">
-            Password reset link sent! Check your email.
+            {successMessage}
           </div>
-        ) : null}
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -50,19 +73,22 @@ export default function ForgotPasswordPage() {
             </label>
             <input
               id="email"
-              type="email"
-              className={`form-input ${error ? 'error' : ''}`}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              name="email"
+              type="text"
+              className="form-input"
+              placeholder="user@example.com"
+              autoComplete="email"
             />
           </div>
 
-          {error && <div className="error-message">{error}</div>}
+          {errorMessage && (
+            <div className="error-message">
+              ⚠️ {errorMessage}
+            </div>
+          )}
 
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Sending...' : 'Send Reset Link'}
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? 'Sending reset link...' : 'Send Reset Link'}
           </button>
         </form>
 

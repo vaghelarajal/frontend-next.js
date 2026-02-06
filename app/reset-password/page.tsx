@@ -4,55 +4,80 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { isValidPassword, doPasswordsMatch } from '@/lib/validation';
 
 function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [token, setToken] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [resetToken, setResetToken] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const tokenParam = searchParams.get('token');
-    if (tokenParam) {
-      setToken(tokenParam);
+    const tokenFromUrl = searchParams.get('token');
+    if (tokenFromUrl) {
+      setResetToken(tokenFromUrl);
     } else {
-      setError('Invalid reset link');
+      setErrorMessage('Invalid reset link. Please request a new password reset link.');
     }
   }, [searchParams]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError('');
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+    const formData = new FormData(event.currentTarget);
+    const newPassword = formData.get('password') as string;
+    const passwordConfirmation = formData.get('confirmPassword') as string;
+
+    // Validate password length
+    if (!isValidPassword(newPassword)) {
+      setErrorMessage('Password must be at least 6 characters long');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    // Check if passwords match
+    if (!doPasswordsMatch(newPassword, passwordConfirmation)) {
+      setErrorMessage('Passwords do not match. Please make sure both passwords are the same.');
       return;
     }
 
-    if (!token) {
-      setError('Invalid reset token');
+    // Check if token exists
+    if (!resetToken) {
+      setErrorMessage('Invalid reset token. Please request a new password reset link.');
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      await api.resetPassword({ token, new_password: password });
-      router.push('/login');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reset failed');
-    } finally {
-      setLoading(false);
+      await api.resetPassword({ 
+        token: resetToken, 
+        new_password: newPassword 
+      });
+      
+      setSuccessMessage('✓ Password reset successfully! Redirecting to login page...');
+      
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } catch (error) {
+      // Show clear error message to user
+      if (error instanceof Error) {
+        if (error.message.includes('expired') || error.message.includes('invalid')) {
+          setErrorMessage('This reset link has expired or is invalid. Please request a new password reset link.');
+        } else {
+          setErrorMessage(error.message);
+        }
+      } else {
+        setErrorMessage('Unable to reset password. Please check your internet connection and try again.');
+      }
+      setIsLoading(false);
     }
-  };
+  }
 
   return (
     <div className="auth-container">
@@ -62,6 +87,12 @@ function ResetPasswordForm() {
           <p className="auth-subtitle">Enter your new password</p>
         </div>
 
+        {successMessage && (
+          <div className="success-message">
+            {successMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="password" className="form-label">
@@ -69,12 +100,11 @@ function ResetPasswordForm() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
-              className={`form-input ${error ? 'error' : ''}`}
+              className="form-input"
               placeholder="At least 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              autoComplete="new-password"
             />
           </div>
 
@@ -84,19 +114,22 @@ function ResetPasswordForm() {
             </label>
             <input
               id="confirmPassword"
+              name="confirmPassword"
               type="password"
-              className={`form-input ${error ? 'error' : ''}`}
+              className="form-input"
               placeholder="Re-enter your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
+              autoComplete="new-password"
             />
           </div>
 
-          {error && <div className="error-message">{error}</div>}
+          {errorMessage && (
+            <div className="error-message">
+              ⚠️ {errorMessage}
+            </div>
+          )}
 
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Resetting...' : 'Reset Password'}
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? 'Resetting password...' : 'Reset Password'}
           </button>
         </form>
 

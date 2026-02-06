@@ -1,33 +1,64 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { setToken } from '@/lib/auth';
+import { isValidEmail } from '@/lib/validation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage('');
+    
+    const formData = new FormData(event.currentTarget);
+    const userEmail = formData.get('email') as string;
+    const userPassword = formData.get('password') as string;
+
+    // Validate email format
+    if (!isValidEmail(userEmail)) {
+      setErrorMessage('Please enter a valid email address (example: user@email.com)');
+      return;
+    }
+
+    // Validate password is not empty
+    if (!userPassword || userPassword.trim() === '') {
+      setErrorMessage('Please enter your password');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      const response = await api.login({ email, password });
+      const response = await api.login({ 
+        email: userEmail, 
+        password: userPassword 
+      });
+      
       setToken(response.access_token || response.token);
       router.push('/profile');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+    } catch (error) {
+      // Show clear error message to user
+      if (error instanceof Error) {
+        if (error.message.includes('credentials')) {
+          setErrorMessage('Incorrect email or password. Please try again.');
+        } else if (error.message.includes('not found')) {
+          setErrorMessage('No account found with this email. Please sign up first.');
+        } else {
+          setErrorMessage(error.message);
+        }
+      } else {
+        setErrorMessage('Unable to login. Please check your internet connection and try again.');
+      }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }
 
   return (
     <div className="auth-container">
@@ -44,12 +75,11 @@ export default function LoginPage() {
             </label>
             <input
               id="email"
-              type="email"
-              className={`form-input ${error ? 'error' : ''}`}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              name="email"
+              type="text"
+              className="form-input"
+              placeholder="user@example.com"
+              autoComplete="email"
             />
           </div>
 
@@ -59,12 +89,11 @@ export default function LoginPage() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
-              className={`form-input ${error ? 'error' : ''}`}
+              className="form-input"
               placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              autoComplete="current-password"
             />
           </div>
 
@@ -72,10 +101,14 @@ export default function LoginPage() {
             <Link href="/forgot-password">Forgot password?</Link>
           </div>
 
-          {error && <div className="error-message">{error}</div>}
+          {errorMessage && (
+            <div className="error-message">
+              ⚠️ {errorMessage}
+            </div>
+          )}
 
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { getToken, removeToken } from '@/lib/auth';
 
-interface UserProfile {
+interface UserData {
   username?: string;
   email?: string;
   name?: string;
@@ -13,52 +13,80 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = getToken();
+    async function loadUserProfile() {
+      const authToken = getToken();
       
-      if (!token) {
+      // Check if user has authentication token
+      if (!authToken) {
         router.push('/login');
         return;
       }
 
       try {
-        const profile = await api.getProfile(token);
-        setUser(profile);
+        const profileData = await api.getProfile(authToken);
+        setUserData(profileData);
       } catch (error) {
-        console.error('Failed to fetch profile:', error);
+        console.error('Failed to load profile:', error);
+        
+        // Show error message
+        if (error instanceof Error) {
+          if (error.message.includes('401') || error.message.includes('unauthorized')) {
+            setErrorMessage('Your session has expired. Please login again.');
+          } else {
+            setErrorMessage('Unable to load your profile. Please try again.');
+          }
+        }
+        
+        // Remove invalid token and redirect to login
         removeToken();
-        router.push('/login');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    };
+    }
 
-    fetchProfile();
+    loadUserProfile();
   }, [router]);
 
-  const handleLogout = () => {
+  function handleLogout() {
     removeToken();
     router.push('/login');
-  };
+  }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="profile-container">
         <div className="profile-header">
-          <h1 style={{ fontSize: '32px', fontWeight: '700' }}>Loading...</h1>
+          <h1>Loading your profile...</h1>
         </div>
       </div>
     );
   }
 
+  if (errorMessage) {
+    return (
+      <div className="profile-container">
+        <div className="profile-header">
+          <h1>Error</h1>
+          <p>{errorMessage}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const displayName = userData?.username || userData?.name || 'User';
+
   return (
     <div className="profile-container">
       <div className="profile-header">
-        <h1>Hello, {user?.username || user?.name || 'User'}!</h1>
+        <h1>Hello, {displayName}!</h1>
         <p>Welcome to your profile</p>
       </div>
 
@@ -68,12 +96,12 @@ export default function ProfilePage() {
           
           <div className="profile-info-item">
             <p className="profile-info-label">Username</p>
-            <p className="profile-info-value">{user?.username || 'User'}</p>
+            <p className="profile-info-value">{userData?.username || 'Not available'}</p>
           </div>
 
           <div className="profile-info-item">
             <p className="profile-info-label">Email</p>
-            <p className="profile-info-value">{user?.email || 'User'}</p>
+            <p className="profile-info-value">{userData?.email || 'Not available'}</p>
           </div>
 
           <button onClick={handleLogout} className="logout-btn">
