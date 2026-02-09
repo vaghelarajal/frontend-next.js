@@ -9,6 +9,7 @@ export default function ForgotPasswordPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [emailValue, setEmailValue] = useState('');
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,15 +31,18 @@ export default function ForgotPasswordPage() {
       await api.forgotPassword({ email: userEmail });
       
       setSuccessMessage(
-        '✓ Password reset link sent successfully! Please check your email inbox (and spam folder) for the reset link.'
+        '✓ Password reset link sent successfully! Please check your email inbox.'
       );
       
-      event.currentTarget.reset();
+      // Clear the email input
+      setEmailValue('');
     } catch (error) {
       // Show clear error message to user
       if (error instanceof Error) {
         if (error.message.includes('not found')) {
           setErrorMessage('No account found with this email address. Please check your email or sign up for a new account.');
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          setErrorMessage('Cannot connect to server.');
         } else {
           setErrorMessage(error.message);
         }
@@ -78,6 +82,8 @@ export default function ForgotPasswordPage() {
               className="form-input"
               placeholder="user@example.com"
               autoComplete="email"
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
             />
           </div>
 

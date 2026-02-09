@@ -22,7 +22,7 @@ export default function LoginPage() {
 
     // Validate email format
     if (!isValidEmail(userEmail)) {
-      setErrorMessage('Please enter a valid email address (example: user@email.com)');
+      setErrorMessage('Please enter a valid email address (example: user@gmail.com)');
       return;
     }
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
       });
       
       setToken(response.access_token || response.token);
-      router.push('/profile');
+      router.push('/products');
     } catch (error) {
       // Show clear error message to user
       if (error instanceof Error) {
@@ -53,7 +53,7 @@ export default function LoginPage() {
           setErrorMessage(error.message);
         }
       } else {
-        setErrorMessage('Unable to login. Please check your internet connection and try again.');
+        setErrorMessage('Unable to login. Please try again.');
       }
     } finally {
       setIsLoading(false);
