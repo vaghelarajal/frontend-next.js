@@ -20,21 +20,40 @@ interface Product {
   image_url?: string;
 }
 
-// Function to get category-based image
+// Function to get product-specific or category-based image
 function getProductDetailImage(product: Product): string {
   if (product.image_url) return product.image_url;
   
-  // Map categories to relevant Unsplash images (larger size for detail page)
-  const categoryImages: { [key: string]: string } = {
-    'Electronics': `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=500&fit=crop`,
-    'Clothing': `https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800&h=500&fit=crop`,
-    'Home & Garden': `https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=800&h=500&fit=crop`,
-    'Sports & Fitness': `https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=500&fit=crop`,
-    'Kitchen': `https://images.unsplash.com/photo-1556911220-bff31c812dba?w=800&h=500&fit=crop`,
-    'Office': `https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&h=500&fit=crop`,
+  // Map specific product names to relevant Unsplash images (larger size for detail page)
+  const productImages: { [key: string]: string } = {
+    'Wireless Bluetooth Headphones': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=500&fit=crop',
+    'Organic Cotton T-Shirt': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=500&fit=crop',
+    'Stainless Steel Water Bottle': 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=800&h=500&fit=crop',
+    'Yoga Mat Premium': 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=800&h=500&fit=crop',
+    'Coffee Maker Deluxe': 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=800&h=500&fit=crop',
+    'LED Desk Lamp': 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=800&h=500&fit=crop',
+    'Wireless Phone Charger': 'https://images.unsplash.com/photo-1588508065123-287b28e013da?w=800&h=500&fit=crop',
+    'Running Shoes': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=500&fit=crop',
+    'Ceramic Dinner Set': 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=800&h=500&fit=crop',
+    'Bluetooth Speaker': 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&h=500&fit=crop',
   };
   
-  return categoryImages[product.category] || `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=500&fit=crop`;
+  // Check if we have a specific image for this product name
+  if (productImages[product.name]) {
+    return productImages[product.name];
+  }
+  
+  // Fallback to category-based images
+  const categoryImages: { [key: string]: string } = {
+    'Electronics': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=500&fit=crop',
+    'Clothing': 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800&h=500&fit=crop',
+    'Home & Garden': 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=800&h=500&fit=crop',
+    'Sports & Fitness': 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=500&fit=crop',
+    'Kitchen': 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=800&h=500&fit=crop',
+    'Office': 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&h=500&fit=crop',
+  };
+  
+  return categoryImages[product.category] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=500&fit=crop';
 }
 
 export default function ProductDetailPage() {

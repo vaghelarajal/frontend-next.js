@@ -70,9 +70,9 @@ export default function ProfilePage() {
     const updatedGender = formData.get('gender') as string;
     const updatedAddress = formData.get('address') as string;
 
-    // Validate age if provided (backend accepts 1-120)
-    if (updatedAge && (parseInt(updatedAge) < 1 || parseInt(updatedAge) > 120)) {
-      setErrorMessage('Please enter a valid age between 1 and 120');
+    // Validate age if provided (backend accepts 13-100)
+    if (updatedAge && (parseInt(updatedAge) < 13 || parseInt(updatedAge) > 100)) {
+      setErrorMessage('Please enter a valid age between 13 and 100');
       return;
     }
 
@@ -96,8 +96,7 @@ export default function ProfilePage() {
 
       const updateData:any = {};
 
-      // Only add optional fields if they have values
-      // Backend UserUpdate schema only accepts: address, gender, age
+      
       if (updatedAge && updatedAge.trim() !== '') {
         updateData.age = parseInt(updatedAge);
       }

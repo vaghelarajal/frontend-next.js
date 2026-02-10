@@ -54,7 +54,7 @@ async function handleResponse(response: Response) {
     }
     return JSON.parse(text);
   } catch (error) {
-    // If parsing fails, return success for 2xx responses
+    // If parsing fails, return success for responses
     if (response.status >= 200 && response.status < 300) {
       return { success: true };
     }
@@ -131,7 +131,7 @@ export const api = {
   },
 
   async updateProfile(token: string, data: UpdateProfileData) {
-    // Backend only accepts: address, gender, age (NOT username/email)
+    // Backend only accepts: address, gender, age
     const cleanData: any = {};
     if (data.age !== undefined && data.age !== null) cleanData.age = data.age;
     if (data.gender !== undefined && data.gender !== '') cleanData.gender = data.gender;

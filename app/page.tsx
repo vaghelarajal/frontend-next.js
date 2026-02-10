@@ -7,7 +7,6 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Always redirect to login page first
     router.push('/login');
   }, [router]);
 

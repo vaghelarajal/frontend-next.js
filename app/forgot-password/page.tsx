@@ -6,10 +6,10 @@ import { api } from '@/lib/api';
 import { isValidEmail } from '@/lib/validation';
 
 export default function ForgotPasswordPage() {
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [emailValue, setEmailValue] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');     //store errors to show the users
+  const [successMessage, setSuccessMessage] = useState('');  //stores sucess text when reset link is sent
+  const [isLoading, setIsLoading] = useState(false);         //disable the button
+  const [emailValue, setEmailValue] = useState('');          //stores what user types in email field
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoading(true);  //disable button, change to sending reset link...
 
     try {
       await api.forgotPassword({ email: userEmail });
@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
         setErrorMessage('Unable to send reset link. Please check your internet connection and try again.');
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false);  //re-enables button and text to send reset link
     }
   }
 
