@@ -20,15 +20,15 @@ export default function ForgotPasswordPage() {
     const userEmail = formData.get('email') as string;
 
     // Validate email format
-    if (!isValidEmail(userEmail)) {
-      setErrorMessage('Please enter a valid email address (example: user@email.com)');
+    if (!userEmail || !isValidEmail(userEmail)) {
+      setErrorMessage('Please enter a valid email address (example: user@gmail.com)');
       return;
     }
 
     setIsLoading(true);  //disable button, change to sending reset link...
 
     try {
-      await api.forgotPassword({ email: userEmail });
+      await api.forgotPassword({ email: userEmail.trim() });
       
       setSuccessMessage(
         '✓ Password reset link sent successfully! Please check your email inbox.'

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { api } from '@/lib/api';
-import { getToken } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 interface Product {
   id: number;
@@ -18,7 +18,7 @@ interface Product {
   image_url?: string;
 }
 
-// Function to get product-specific or category-based image
+// Function to get product-specific image only
 function getProductImage(product: Product): string {
   if (product.image_url) return product.image_url;
   
@@ -36,22 +36,7 @@ function getProductImage(product: Product): string {
     'Bluetooth Speaker': 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&h=200&fit=crop',
   };
   
-  // Check if we have a specific image for this product name
-  if (productImages[product.name]) {
-    return productImages[product.name];
-  }
-  
-  // Fallback to category-based images
-  const categoryImages: { [key: string]: string } = {
-    'Electronics': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop',
-    'Clothing': 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=300&h=200&fit=crop',
-    'Home & Garden': 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=300&h=200&fit=crop',
-    'Sports & Fitness': 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&h=200&fit=crop',
-    'Kitchen': 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=300&h=200&fit=crop',
-    'Office': 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=300&h=200&fit=crop',
-  };
-  
-  return categoryImages[product.category] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop';
+  return productImages[product.name] || '';
 }
 
 export default function ProductsPage() {
@@ -66,9 +51,8 @@ export default function ProductsPage() {
 
   useEffect(() => {
     async function loadProducts() {
-      const authToken = getToken();
-      
-      if (!authToken) {
+      // Check authentication first
+      if (requireAuth()) {
         router.push('/login');
         return;
       }
@@ -78,7 +62,18 @@ export default function ProductsPage() {
         setProducts(productsData);
       } catch (error) {
         console.error('Failed to load products:', error);
-        setErrorMessage('Unable to load products. Please try again.');
+        console.error('Failed to load products:', error);
+        
+        // Handle authentication errors
+        if (error instanceof Error && 
+            (error.message.includes('401') || error.message.includes('unauthorized'))) {
+          setErrorMessage('Your session has expired. Please login again.');
+          setTimeout(() => {
+            router.push('/login');
+          }, 2000);
+        } else {
+          setErrorMessage('Unable to load products. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -199,7 +194,8 @@ export default function ProductsPage() {
         {/* Products Count */}
         <div className="products-count">
           {searchQuery && (
-            <span>Search results for {searchQuery}: </span>
+            <span>Search results for &quot;{searchQuery}&quot;: </span>
+
           )}
           Showing {currentProducts.length} of {filteredProducts.length} products
         </div>
@@ -219,33 +215,39 @@ export default function ProductsPage() {
           </div>
         ) : (
           <div className="products-grid">
-          {currentProducts.map((product) => (
-            <Link 
-              key={product.id} 
-              href={`/products/${product.id}`}
-              className="product-card"
-            >
-              <div className="product-image">
-                <img 
-                  src={getProductImage(product)}
-                  alt={product.name}
-                  loading="lazy"
-                />
-              </div>
-              <div className="product-card-content">
-                <div className="product-category">{product.category}</div>
-                <h3 className="product-name">{product.name}</h3>
-                <p className="product-description">{product.description}</p>
-                <div className="product-footer">
-                  <span className="product-price">${product.price.toFixed(2)}</span>
-                  <span className="product-stock">
-                    {product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : 'Out of stock'}
-                  </span>
+            {currentProducts.map((product) => (
+              <Link 
+                key={product.id} 
+                href={`/products/${product.id}`}
+                className="product-card"
+              >
+                <div className="product-image">
+                  {getProductImage(product) ? (
+                    <img 
+                      src={getProductImage(product)}
+                      alt={product.name}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="no-image-placeholder">
+                      <span>No Image</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+                <div className="product-card-content">
+                  <div className="product-category">{product.category}</div>
+                  <h3 className="product-name">{product.name}</h3>
+                  <p className="product-description">{product.description}</p>
+                  <div className="product-footer">
+                    <span className="product-price">${product.price.toFixed(2)}</span>
+                    <span className="product-stock">
+                      {product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : 'Out of stock'}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
 
         {/* Pagination Controls */}

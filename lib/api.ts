@@ -11,6 +11,7 @@ export interface SignupData {
   username: string;
   email: string;
   password: string;
+  confirm_password: string;
 }
 
 export interface ForgotPasswordData {
@@ -35,12 +36,35 @@ async function handleResponse(response: Response) {
   const contentType = response.headers.get('content-type');
   
   if (!response.ok) {
+    console.error('API Error:', response.status, response.statusText);
+    console.error('Response URL:', response.url);
+    
     // Check if response is JSON
     if (contentType && contentType.includes('application/json')) {
       const error = await response.json();
-      throw new Error(error.detail || error.message || 'Request failed');
+      console.error('Error details:', error);
+      
+      // Extract the most specific error message
+      let errorMessage = 'Request failed';
+      if (error.detail) {
+        if (Array.isArray(error.detail)) {
+          // FastAPI validation errors
+          errorMessage = error.detail.map((err: any) => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+        } else {
+          errorMessage = error.detail;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.error) {
+        errorMessage = error.error;
+      }
+      
+      console.error('Final error message:', errorMessage);
+      throw new Error(errorMessage);
     } else {
       // If not JSON, it might be HTML error page
+      const errorText = await response.text();
+      console.error('Non-JSON error response:', errorText);
       throw new Error(`Server error: ${response.status} ${response.statusText}`);
     }
   }
@@ -52,9 +76,12 @@ async function handleResponse(response: Response) {
       // Empty response is considered success
       return { success: true };
     }
-    return JSON.parse(text);
+    const data = JSON.parse(text);
+    console.log('API Response:', data);
+    return data;
   } catch (error) {
-    // If parsing fails, return success for responses
+    console.error('Failed to parse response:', error);
+    // If parsing fails, return success for 2xx responses
     if (response.status >= 200 && response.status < 300) {
       return { success: true };
     }
@@ -64,27 +91,63 @@ async function handleResponse(response: Response) {
 
 export const api = {
   async login(data: LoginData) {
+    console.log('=== LOGIN API CALL ===');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('Login URL:', `${API_BASE_URL}/auth/login`);
+    console.log('Login data:', { email: data.email, password: '[HIDDEN]' });
+    
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      return await handleResponse(response);
+      
+      console.log('Login response status:', response.status);
+      console.log('Login response ok:', response.ok);
+      
+      const result = await handleResponse(response);
+      console.log('Login successful, result keys:', Object.keys(result));
+      console.log('=== END LOGIN ===');
+      
+      return result;
     } catch (error) {
+      console.error('=== LOGIN ERROR ===');
+      console.error('Login error:', error);
+      console.error('=== END LOGIN ERROR ===');
       throw error;
     }
   },
 
   async signup(data: SignupData) {
+    console.log('=== SIGNUP API CALL ===');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('Signup URL:', `${API_BASE_URL}/auth/signup`);
+    console.log('Signup data:', { 
+      username: data.username, 
+      email: data.email, 
+      password: '[HIDDEN]' 
+    });
+    
     try {
       const response = await fetch(`${API_BASE_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      return await handleResponse(response);
+      
+      console.log('Signup response status:', response.status);
+      console.log('Signup response ok:', response.ok);
+      
+      const result = await handleResponse(response);
+      console.log('Signup successful, result:', result);
+      console.log('=== END SIGNUP ===');
+      
+      return result;
     } catch (error) {
+      console.error('=== SIGNUP ERROR ===');
+      console.error('Signup error:', error);
+      console.error('=== END SIGNUP ERROR ===');
       throw error;
     }
   },
@@ -174,7 +237,7 @@ export const api = {
       console.error('=== END ERROR ===');
       
       if (error instanceof TypeError) {
-        throw new Error('Cannot connect to server. Please make sure the backend is running on port 8000.');
+        throw new Error('Cannot connect to server. Please make sure the backend is running.');
       }
       throw error;
     }
