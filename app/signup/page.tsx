@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { isValidEmail, isValidPassword, doPasswordsMatch } from '@/lib/validation';
+import { isValidEmail, isValidPassword, doPasswordsMatch, isValidUsername } from '@/lib/validation';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -24,8 +24,8 @@ export default function SignupPage() {
     const passwordConfirmation = formData.get('confirmPassword') as string;
 
     // Validate username
-    if (!userName || userName.trim().length < 3) {
-      setErrorMessage('Username must be at least 3 characters long');
+    if (!isValidUsername(userName)) {
+      setErrorMessage('Username must be 3-20 characters long and contain only letters, numbers, and underscores');
       return;
     }
 
@@ -50,10 +50,11 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      await api.signup({ 
-        username: userName, 
-        email: userEmail, 
-        password: userPassword 
+      const response = await api.signup({ 
+        username: userName.trim(), 
+        email: userEmail.trim(), 
+        password: userPassword,
+        confirm_password: passwordConfirmation
       });
       
       setSuccessMessage('✓ Account created successfully! Redirecting to login...');

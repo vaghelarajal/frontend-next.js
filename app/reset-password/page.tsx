@@ -55,7 +55,7 @@ function ResetPasswordForm() {
     try {
       await api.resetPassword({ 
         token: resetToken, 
-        new_password: newPassword 
+        new_password: newPassword.trim() 
       });
       
       setSuccessMessage('✓ Password reset successfully! Redirecting to login page...');

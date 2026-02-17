@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { setToken } from '@/lib/auth';
-import { isValidEmail } from '@/lib/validation';
+import { isValidEmail, isValidPassword } from '@/lib/validation';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,14 +21,14 @@ export default function LoginPage() {
     const userPassword = formData.get('password') as string;
 
     // Validate email format
-    if (!isValidEmail(userEmail)) {
-      setErrorMessage('Please enter a valid email address (example: user@email.com)');
+    if (!userEmail || !isValidEmail(userEmail)) {
+      setErrorMessage('Please enter a valid email address (example: user@gmail.com)');
       return;
     }
 
-    // Validate password is not empty
-    if (!userPassword || userPassword.trim() === '') {
-      setErrorMessage('Please enter your password');
+    // Validate password
+    if (!isValidPassword(userPassword)) {
+      setErrorMessage('Please enter your password (minimum 6 characters)');
       return;
     }
 
@@ -36,12 +36,19 @@ export default function LoginPage() {
 
     try {
       const response = await api.login({ 
-        email: userEmail, 
+        email: userEmail.trim(), 
         password: userPassword 
       });
       
-      setToken(response.access_token || response.token);
-      router.push('/profile');
+      // Handle different token field names from backend
+      const token = response.access_token || response.token || response.auth_token;
+      
+      if (!token) {
+        throw new Error('No authentication token received from server');
+      }
+      
+      setToken(token);
+      router.push('/products');
     } catch (error) {
       // Show clear error message to user
       if (error instanceof Error) {
@@ -53,7 +60,7 @@ export default function LoginPage() {
           setErrorMessage(error.message);
         }
       } else {
-        setErrorMessage('Unable to login. Please check your internet connection and try again.');
+        setErrorMessage('Unable to login. Please try again.');
       }
     } finally {
       setIsLoading(false);

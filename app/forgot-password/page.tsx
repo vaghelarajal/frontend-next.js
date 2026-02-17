@@ -6,9 +6,10 @@ import { api } from '@/lib/api';
 import { isValidEmail } from '@/lib/validation';
 
 export default function ForgotPasswordPage() {
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');     //store errors to show the users
+  const [successMessage, setSuccessMessage] = useState('');  //stores sucess text when reset link is sent
+  const [isLoading, setIsLoading] = useState(false);         //disable the button
+  const [emailValue, setEmailValue] = useState('');          //stores what user types in email field
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,26 +20,29 @@ export default function ForgotPasswordPage() {
     const userEmail = formData.get('email') as string;
 
     // Validate email format
-    if (!isValidEmail(userEmail)) {
-      setErrorMessage('Please enter a valid email address (example: user@email.com)');
+    if (!userEmail || !isValidEmail(userEmail)) {
+      setErrorMessage('Please enter a valid email address (example: user@gmail.com)');
       return;
     }
 
-    setIsLoading(true);
+    setIsLoading(true);  //disable button, change to sending reset link...
 
     try {
-      await api.forgotPassword({ email: userEmail });
+      await api.forgotPassword({ email: userEmail.trim() });
       
       setSuccessMessage(
-        '✓ Password reset link sent successfully! Please check your email inbox (and spam folder) for the reset link.'
+        '✓ Password reset link sent successfully! Please check your email inbox.'
       );
       
-      event.currentTarget.reset();
+      // Clear the email input
+      setEmailValue('');
     } catch (error) {
       // Show clear error message to user
       if (error instanceof Error) {
         if (error.message.includes('not found')) {
           setErrorMessage('No account found with this email address. Please check your email or sign up for a new account.');
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          setErrorMessage('Cannot connect to server.');
         } else {
           setErrorMessage(error.message);
         }
@@ -46,7 +50,7 @@ export default function ForgotPasswordPage() {
         setErrorMessage('Unable to send reset link. Please check your internet connection and try again.');
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false);  //re-enables button and text to send reset link
     }
   }
 
@@ -78,6 +82,8 @@ export default function ForgotPasswordPage() {
               className="form-input"
               placeholder="user@example.com"
               autoComplete="email"
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
             />
           </div>
 
